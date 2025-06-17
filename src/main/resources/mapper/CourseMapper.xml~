@@ -1,0 +1,46 @@
+<select id="findScheduleByStudentId" resultMap="CourseResultMap">
+    SELECT DISTINCT 
+        c.*,
+        s.id as schedule_id,
+        s.day_of_week,
+        s.start_time,
+        s.end_time,
+        s.classroom_id,
+        cr.name as classroom_name,
+        u.id as teacher_id,
+        u.username as teacher_name
+    FROM courses c
+    INNER JOIN selections sel ON c.id = sel.course_id
+    LEFT JOIN schedules s ON c.id = s.course_id
+    LEFT JOIN classrooms cr ON s.classroom_id = cr.id
+    LEFT JOIN course_teachers ct ON c.id = ct.course_id
+    LEFT JOIN users u ON ct.teacher_id = u.id
+    WHERE sel.user_id = #{studentId}
+</select>
+
+<resultMap id="CourseResultMap" type="com.example.bean.Course">
+    <id property="id" column="id"/>
+    <result property="courseName" column="course_name"/>
+    <result property="credits" column="credits"/>
+    <result property="weeklyHours" column="weekly_hours"/>
+    <result property="capacity" column="capacity"/>
+    
+    <!-- 课程安排集合 -->
+    <collection property="schedules" ofType="com.example.bean.Schedule">
+        <id property="id" column="schedule_id"/>
+        <result property="dayOfWeek" column="day_of_week"/>
+        <result property="startTime" column="start_time"/>
+        <result property="endTime" column="end_time"/>
+        <!-- 教室信息 -->
+        <association property="classrooms" javaType="com.example.bean.Classroom">
+            <id property="id" column="classroom_id"/>
+            <result property="name" column="classroom_name"/>
+        </association>
+    </collection>
+    
+    <!-- 教师信息集合 -->
+    <collection property="teachers" ofType="com.example.bean.User">
+        <id property="id" column="teacher_id"/>
+        <result property="username" column="teacher_name"/>
+    </collection>
+</resultMap> 

@@ -1,0 +1,201 @@
+package com.example.controller;
+
+import com.example.bean.Course;
+import com.example.bean.CourseTeacher;
+import com.example.bean.User;
+import com.example.service.CourseService;
+import com.example.service.SelectionService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
+
+import com.google.common.collect.Maps;
+
+import javax.servlet.http.HttpSession;
+
+@RestController
+@RequestMapping("/api/courses")
+public class CourseController {
+
+    @Autowired
+    private CourseService courseService;
+
+    @Autowired
+    private SelectionService selectionService;
+
+    @GetMapping("/available")
+    public ResponseEntity<List<Course>> getAvailableCourses(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) Integer credits,
+            @RequestParam(required = false) String weekday) {
+
+        System.out.println("search: " + search + " credits: " + credits + " weekday: " + weekday);
+        List<Course> courses = courseService.findAvailableCourses(search, credits, weekday);
+        System.out.println("courses 课程数量: " + courses.size());
+        return ResponseEntity.ok(courses);
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<Course> getCourseById(@PathVariable Integer id) {
+        Course course = courseService.getCourseById(id);
+        if (course != null) {
+            return ResponseEntity.ok(course);
+        }
+        return ResponseEntity.notFound().build();
+    }
+
+    @GetMapping("/my-courses")
+    public ResponseEntity<List<Course>> getMyCourses(HttpSession session) {
+        User user = (User) session.getAttribute("user");
+        System.out.println("请求user:" + user);
+        // 请求user:User{username='张三', roleId=3, userType='STUDENT'}
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        
+        List<Course> courses = courseService.getStudentCourses(user.getId());
+        return ResponseEntity.ok(courses);
+    }
+
+    @GetMapping("/schedule")
+    public ResponseEntity<List<Course>> getSchedule(HttpSession session) {
+        User user = (User) session.getAttribute("user");
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        
+        List<Course> courses = courseService.getStudentSchedule(user.getId());
+        return ResponseEntity.ok(courses);
+    }
+
+    @GetMapping("/teacher/get-courses")
+    public ResponseEntity<List<CourseTeacher>> getTeacherCourses(HttpSession session) {
+        User user = (User) session.getAttribute("user");
+        if (user == null || !"TEACHER".equals(user.getUserType())) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        System.out.println("请求user:" + user);
+        List<CourseTeacher> courses = courseService.getTeacherCourses(user.getId());
+        System.out.println("\n\n老师课程数量: " + courses);
+        return ResponseEntity.ok(courses);
+    }
+
+    @PostMapping("/teacher/add-courses")
+    public ResponseEntity<?> createCourse(@RequestBody Course course, HttpSession session) {
+        User user = (User) session.getAttribute("user");
+        if (user == null || !"TEACHER".equals(user.getUserType())) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        System.out.println("添加课程老师: " + user);
+        System.out.println("添加课程course: " + course);
+        try {
+            courseService.createCourse(course, user.getId());
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            Map<String, String> errors = Maps.newHashMap();
+            errors.put("message", e.getMessage());
+            return ResponseEntity.badRequest().body(errors);
+        }
+
+    }
+
+    @DeleteMapping("/teacher/delete-courses/{id}")
+    public ResponseEntity<?> deleteCourse(@PathVariable Integer id, HttpSession session) {
+        User user = (User) session.getAttribute("user");
+        if (user == null || !"TEACHER".equals(user.getUserType())) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        
+        try {
+            courseService.deleteCourse(id, user.getId());
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            Map<String, String> errors = Maps.newHashMap();
+            errors.put("message", e.getMessage());
+            return ResponseEntity.badRequest().body(errors);
+        }
+    }
+
+    // 退课接口
+    @DeleteMapping("/student/dropCourse/{id}")
+    public ResponseEntity<?> dropCourse(@PathVariable Integer id, HttpSession session) {
+        User user = (User) session.getAttribute("user");
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        try {
+            selectionService.dropCourse(user.getId(), id);
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            Map<String, String> errors = Maps.newHashMap();
+            errors.put("message", e.getMessage());
+            return ResponseEntity.badRequest().body(errors);
+        }
+    }
+
+    @GetMapping("/teacher/stats")
+    public ResponseEntity<Map<String, Object>> getTeacherCourseStats(HttpSession session) {
+        User user = (User) session.getAttribute("user");
+        if (user == null || !"TEACHER".equals(user.getUserType())) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        
+        Map<String, Object> stats = courseService.getTeacherCourseStats(user.getId());
+        return ResponseEntity.ok(stats);
+    }
+
+    @GetMapping("/teacher/get-course/{id}")
+    public ResponseEntity<Course> getTeacherCourse(@PathVariable Integer id, HttpSession session) {
+        User user = (User) session.getAttribute("user");
+        if (user == null || !"TEACHER".equals(user.getUserType())) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        Course course = courseService.getTeacherCourse(id, user.getId());
+        if (course == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(course);
+    }
+
+    @PutMapping("/teacher/update-course")
+    public ResponseEntity<?> updateCourse(@RequestBody Course course, HttpSession session) {
+        User user = (User) session.getAttribute("user");
+        System.out.println("更新课程老师: " + user);
+        if (user == null || !"TEACHER".equals(user.getUserType())) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        try {
+            courseService.updateTeacherCourse(course, user.getId());
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            Map<String, String> errors = new HashMap<>();
+            errors.put("message", e.getMessage());
+            return ResponseEntity.badRequest().body(errors);
+        }
+    }
+
+    @GetMapping("/teacher/schedule")
+    public ResponseEntity<?> getTeacherSchedule(HttpSession session) {
+        User user = (User) session.getAttribute("user");
+        if (user == null || !"TEACHER".equals(user.getUserType())) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        try {
+            List<Course> courses = courseService.getTeacherAllCourses(user.getId());
+            return ResponseEntity.ok(courses);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("message", e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        }
+    }
+}

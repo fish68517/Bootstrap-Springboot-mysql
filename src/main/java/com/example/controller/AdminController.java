@@ -1,0 +1,203 @@
+package com.example.controller;
+
+import com.example.bean.User;
+import com.example.bean.Course;
+import com.example.service.CourseService;
+import com.example.service.SelectionService;
+import com.example.service.UserService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
+
+@RestController
+@RequestMapping("/api/admin")
+public class AdminController {
+
+    @Autowired
+    private UserService userService;
+
+    @Autowired
+    private CourseService courseService;
+
+    @Autowired
+    private SelectionService selectionService;
+
+    // 获取用户列表
+    @GetMapping("/users")
+    public ResponseEntity<List<User>> getUsers(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String userType) {
+        List<User> users = userService.findUsers(search, userType);
+        return ResponseEntity.ok(users);
+    }
+
+    // 添加新用户
+    @PostMapping("/users")
+    public ResponseEntity<?> createUser(@RequestBody User user) {
+        try {
+            userService.createUser(user);
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            Map<String, String> response = new HashMap<>();
+            response.put("message", e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        }
+    }
+
+    // 删除用户
+    @DeleteMapping("/users/{id}")
+    public ResponseEntity<?> deleteUser(@PathVariable Integer id) {
+        try {
+            userService.deleteUser(id);
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            Map<String, String> response = new HashMap<>();
+            response.put("message", e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        }
+    }
+
+    // 重置用户密码
+    @PostMapping("/users/{id}/reset-password")
+    public ResponseEntity<?> resetPassword(@PathVariable Integer id) {
+        try {
+            String newPassword = userService.resetPassword(id);
+            Map<String, String> response = new HashMap<>();
+            response.put("password", newPassword);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, String> response = new HashMap<>();
+            response.put("message", e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        }
+    }
+
+    // 获取系统统计数据
+    @GetMapping("/statistics")
+    public ResponseEntity<?> getStatistics() {
+        Map<String, Object> stats = userService.getSystemStatistics();
+        return ResponseEntity.ok(stats);
+    }
+
+    // 获取课程列表
+    @GetMapping("/courses")
+    public ResponseEntity<List<Course>> getCourses(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) Integer credits) {
+        try {
+            List<Course> courses = courseService.findCourses(search, credits);
+            return ResponseEntity.ok(courses);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    // 获取单个课程详情
+    @GetMapping("/courses/{id}")
+    public ResponseEntity<Course> getCourse(@PathVariable Integer id) {
+        try {
+            Course course = courseService.getCourseById(id);
+            if (course == null) {
+                return ResponseEntity.notFound().build();
+            }
+            return ResponseEntity.ok(course);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    // 创建新课程
+    @PostMapping("/courses/{teacherId}")
+    public ResponseEntity<?> createCourse(@RequestBody Course course,@PathVariable Integer teacherId) {
+        try {
+            courseService.createCourseAdmin(course,teacherId);
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            Map<String, String> response = new HashMap<>();
+            response.put("message", e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        }
+    }
+
+    // 更新课程
+    @PutMapping("/courses/{id}/{teacherId}")
+    public ResponseEntity<?> updateCourse(
+            @PathVariable Integer id,
+            @PathVariable Integer teacherId,
+            @RequestBody Course course) {
+
+        System.out.println("管理员更新课程：" +course.toString());
+        System.out.println("管理员更新课程id：" +id);
+        try {
+            course.setId(id);
+            courseService.updateCourse(course,teacherId);
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            Map<String, String> response = new HashMap<>();
+            response.put("message", e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        }
+    }
+
+    // 删除课程
+    @DeleteMapping("/courses/{id}")
+    public ResponseEntity<?> deleteCourse(@PathVariable Integer id) {
+        try {
+            courseService.deleteCourse(id);
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            Map<String, String> response = new HashMap<>();
+            response.put("message", e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        }
+    }
+
+    // 获取教师列表（用于课程编辑时选择教师）
+    @GetMapping("/teachers")
+    public ResponseEntity<List<User>> getTeachers() {
+        try {
+            List<User> teachers = userService.findUsers(null, "TEACHER");
+            return ResponseEntity.ok(teachers);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    // 获取系统统计数据详情
+    @GetMapping("/statistics/details")
+    public ResponseEntity<Map<String, Object>> getDetailedStatistics() {
+        Map<String, Object> stats = new HashMap<>();
+        
+        // 基础统计
+        stats.put("totalUsers", userService.countUsers());
+        stats.put("totalCourses", courseService.countCourses());
+        stats.put("totalSelections", selectionService.countTotalSelections());
+        stats.put("todaySelections", selectionService.countTodaySelections());
+        
+        // 用户类型分布
+        Map<String, Integer> userTypeStats = userService.getUserTypeStats();
+        stats.put("userTypeStats", userTypeStats);
+        
+        // 课程学分分布
+        Map<Integer, Integer> creditDist = courseService.getCreditDistribution();
+        stats.put("creditDistribution", creditDist);
+        
+        // 每周课程分布
+        Map<String, Integer> weekdayDist = courseService.getWeekdayDistribution();
+        stats.put("weekdayDistribution", weekdayDist);
+        
+        // 选课趋势
+        Map<String, Object> selectionTrend = selectionService.getSelectionTrend();
+        stats.put("selectionTrend", selectionTrend);
+        
+        // 热门课程
+        List<Map<String, Object>> hotCourses = courseService.getHotCourses(10);
+        stats.put("hotCourses", hotCourses);
+        
+        return ResponseEntity.ok(stats);
+    }
+} 

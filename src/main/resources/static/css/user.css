@@ -1,0 +1,17 @@
+body {
+    padding-top: 60px;
+    background-color: #f8f9fa;
+}
+
+.dashboard-container {
+    max-width: 2400px;
+    margin: auto;
+}
+
+.list-group-item {
+    color: #333;
+}
+
+.list-group-item:hover {
+    background-color: #e9ecef;
+}
