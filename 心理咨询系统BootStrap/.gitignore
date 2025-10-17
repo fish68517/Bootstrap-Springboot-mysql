@@ -1,0 +1,15 @@
+
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Build directories
+psychological/build/
+psychological/target/  # 如果是 Maven 项目，也忽略 target
+psychological/*.jar    # 忽略编译后的 JAR 文件
