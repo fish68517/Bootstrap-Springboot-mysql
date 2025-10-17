@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.CourseTeacherMapper">
+    
+    <!-- 结果映射 -->
+    <resultMap id="UserResultMap" type="com.example.bean.User">
+        <id property="id" column="id"/>
+        <result property="username" column="username"/>
+        <result property="userType" column="user_type"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+    
+    <!-- 根据课程ID查询教师列表 -->
+    <select id="findTeachersByCourseId" resultMap="UserResultMap">
+        SELECT u.* 
+        FROM users u
+        INNER JOIN course_teachers ct ON u.id = ct.teacher_id
+        WHERE ct.course_id = #{courseId}
+    </select>
+
+    <!-- 添加课程-教师关联 -->
+    <insert id="insert">
+        INSERT INTO course_teachers(
+            course_id, 
+            teacher_id, 
+            role, 
+            created_at, 
+            updated_at
+        )
+        VALUES(
+            #{courseId}, 
+            #{teacherId}, 
+            #{role}, 
+            NOW(), 
+            NOW()
+        )
+    </insert>
+
+    <!-- 删除课程-教师关联 -->
+    <delete id="delete">
+        DELETE FROM course_teachers
+        WHERE course_id = #{courseId} 
+        AND teacher_id = #{teacherId}
+    </delete>
+
+    <!-- 检查教师是否已关联到课程 -->
+    <select id="exists" resultType="boolean">
+        SELECT EXISTS(
+            SELECT 1 
+            FROM course_teachers
+            WHERE course_id = #{courseId} 
+            AND teacher_id = #{teacherId}
+        )
+    </select>
+
+    <!-- 获取课程的主讲教师 -->
+    <select id="findMainTeacher" resultMap="UserResultMap">
+        SELECT u.* 
+        FROM users u
+        INNER JOIN course_teachers ct ON u.id = ct.teacher_id
+        WHERE ct.course_id = #{courseId} 
+        AND ct.role = '主讲'
+        LIMIT 1
+    </select>
+</mapper> 

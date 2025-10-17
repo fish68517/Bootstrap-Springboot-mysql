@@ -1,0 +1,44 @@
+.schedule-container {
+    overflow-x: auto;
+}
+
+.schedule-table {
+    min-width: 800px;
+    background-color: white;
+}
+
+.schedule-table th {
+    text-align: center;
+    background-color: #f8f9fa;
+    min-width: 120px;
+}
+
+.schedule-table td {
+    text-align: center;
+    vertical-align: middle;
+    height: 100px;
+    padding: 10px;
+}
+
+.course-cell {
+    background-color: #e3f2fd;
+    border-radius: 4px;
+    padding: 8px;
+    margin: 2px;
+    font-size: 0.9em;
+}
+
+.course-name {
+    font-weight: bold;
+    margin-bottom: 4px;
+}
+
+.course-info {
+    font-size: 0.8em;
+    color: #666;
+}
+
+.time-cell {
+    background-color: #f8f9fa;
+    font-weight: bold;
+} 

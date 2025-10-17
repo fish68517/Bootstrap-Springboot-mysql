@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>课程管理</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+    <link th:href="@{/css/dashboard.css}" rel="stylesheet">
+</head>
+<body>
+<div class="wrapper">
+    <!-- 侧边栏 -->
+    <nav id="sidebar">
+        <div class="sidebar-header">
+            <h3>排课系统</h3>
+            <div class="user-info">
+                <i class="bi bi-person-circle"></i>
+                <span th:text="${user.username}">教师</span>
+            </div>
+        </div>
+
+        <ul class="list-unstyled components">
+            <li>
+                <a href="/teacher/dashboard">
+                    <i class="bi bi-speedometer2"></i>
+                    <span>首页</span>
+                </a>
+            </li>
+            <li class="active">
+                <a href="/teacher/courses">
+                    <i class="bi bi-book"></i>
+                    <span>课程管理</span>
+                </a>
+            </li>
+            <li>
+                <a href="/teacher/course-stats">
+                    <i class="bi bi-graph-up"></i>
+                    <span>课程统计</span>
+                </a>
+            </li>
+            <li class="active">
+                <a href="/teacher/schedule">
+                    <i class="bi bi-calendar3"></i>
+                    <span>我的课表</span>
+                </a>
+            </li>
+            <li>
+                <a href="/logout">
+                    <i class="bi bi-box-arrow-right"></i>
+                    <span>退出登录</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+
+    <!-- 页面内容 -->
+    <div id="content">
+        <nav class="navbar navbar-expand-lg navbar-light">
+            <div class="container-fluid">
+                <button type="button" id="sidebarCollapse" class="btn btn-info">
+                    <i class="bi bi-list"></i>
+                </button>
+                <div class="d-flex align-items-center">
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCourseModal">
+                        <i class="bi bi-plus-circle me-1"></i> 添加课程
+                    </button>
+                </div>
+            </div>
+        </nav>
+
+        <div class="container-fluid mt-4">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>我的课程</h2>
+            </div>
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                            <tr>
+                                <th>课程名称</th>
+                                <th>学分</th>
+                                <th>上课时间</th>
+                                <th>教室</th>
+                                <th>容量</th>
+                                <th>操作</th>
+                            </tr>
+                            </thead>
+                            <tbody id="courseList">
+                            <!-- 课程数据将通过JavaScript动态加载 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 添加课程模态框 -->
+<div class="modal fade" id="addCourseModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">添加课程</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addCourseForm">
+                    <div class="mb-3">
+                        <label class="form-label">课程名称</label>
+                        <input type="text" class="form-control" name="courseName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">课程描述</label>
+                        <textarea class="form-control" name="description" rows="3"></textarea>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">学分</label>
+                            <input type="number" class="form-control" name="credits" required min="1" max="10">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">每周课时</label>
+                            <input type="number" class="form-control" name="weeklyHours" required min="1">
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">每周课次</label>
+                            <input type="number" class="form-control" name="weeklySessions" required min="1">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">容量</label>
+                            <input type="number" class="form-control" name="capacity" required min="1">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">课程安排</label>
+                        <div id="scheduleContainer">
+                            <div class="schedule-item row mb-2">
+                                <div class="col-md-3">
+                                    <select class="form-select" name="dayOfWeek[]" required>
+                                        <option value="">选择星期</option>
+                                        <option value="MON">周一</option>
+                                        <option value="TUE">周二</option>
+                                        <option value="WED">周三</option>
+                                        <option value="THU">周四</option>
+                                        <option value="FRI">周五</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <input class="form-control" type="time"  name="startTime[]" placeholder="开始时间">
+                                </div>
+                                <div class="col-md-3">
+                                    <input class="form-control" type="time"  name="endTime[]" placeholder="结束时间">
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" name="classroom[]" 
+                                               placeholder="教室" required>
+                                        <button type="button" class="btn btn-outline-danger remove-schedule">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-outline-primary btn-sm mt-2" id="addScheduleBtn">
+                            <i class="bi bi-plus-circle me-1"></i>添加时间段
+                        </button>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="submitCourse">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 编辑课程模态框 -->
+<div class="modal fade" id="editCourseModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">编辑课程</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editCourseForm">
+                    <input type="hidden" name="id">
+                    <div class="mb-3">
+                        <label class="form-label">课程名称</label>
+                        <input type="text" class="form-control" name="courseName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">课程描述</label>
+                        <textarea class="form-control" name="description" rows="3"></textarea>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">学分</label>
+                            <input type="number" class="form-control" name="credits" required min="1" max="10">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">每周课时</label>
+                            <input type="number" class="form-control" name="weeklyHours" required min="1">
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">每周课次</label>
+                            <input type="number" class="form-control" name="weeklySessions" required min="1">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">容量</label>
+                            <input type="number" class="form-control" name="capacity" required min="1">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">课程安排</label>
+                        <div id="editScheduleContainer">
+                            <!-- 动态添加的课程安排项 -->
+                        </div>
+                      <!--  <button type="button" class="btn btn-outline-primary btn-sm mt-2" id="addEditScheduleBtn">
+                            添加课程安排
+                        </button>-->
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="saveEditCourseBtn">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script th:src="@{/js/teacher-courses.js}"></script>
+</body>
+</html>

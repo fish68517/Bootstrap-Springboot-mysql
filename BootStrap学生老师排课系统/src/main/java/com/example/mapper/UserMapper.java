@@ -1,0 +1,58 @@
+package com.example.mapper;
+
+import com.example.bean.User;
+import org.apache.ibatis.annotations.*;
+import java.util.List;
+
+@Mapper
+public interface UserMapper {
+    
+    @Select("SELECT * FROM users WHERE username = #{username} AND user_type = #{userType}")
+    User findByUsernameAndType(@Param("username") String username, 
+                              @Param("userType") String userType);
+
+
+    @Select("SELECT * FROM users WHERE id = #{id}")
+    User findById(Integer id);
+
+    @Select("<script>" +
+            "SELECT * FROM users WHERE 1=1" +
+            "<if test='search != null and search != \"\"'>" +
+            " AND username LIKE CONCAT('%', #{search}, '%')" +
+            "</if>" +
+            "<if test='userType != null and userType != \"\"'>" +
+            " AND user_type = #{userType}" +
+            "</if>" +
+            "</script>")
+    List<User> findUsers(@Param("search") String search, 
+                        @Param("userType") String userType);
+
+    @Insert("INSERT INTO users(username, password, user_type, created_at, updated_at) " +
+            "VALUES(#{username}, #{password}, #{userType}, NOW(), NOW())")
+    @Options(useGeneratedKeys = true, keyProperty = "id")
+    void insert(User user);
+
+    @Update("UPDATE users SET " +
+            "username = #{username}, " +
+            "user_type = #{userType}, " +
+            "updated_at = NOW() " +
+            "WHERE id = #{id}")
+    void update(User user);
+
+    @Update("UPDATE users SET password = #{password}, updated_at = NOW() " +
+            "WHERE id = #{id}")
+    void updatePassword(@Param("id") Integer id, @Param("password") String password);
+
+    @Delete("DELETE FROM users WHERE id = #{id}")
+    void delete(Integer id);
+
+    @Select("SELECT COUNT(*) FROM users")
+    int countTotalUsers();
+
+    @Select("SELECT COUNT(*) FROM users WHERE user_type = #{userType}")
+    int countByUserType(String userType);
+
+    @Select("SELECT COUNT(*) FROM users")
+    int countAll();
+
+}

@@ -1,0 +1,304 @@
+package com.example.controller;
+
+import com.example.bean.User;
+import com.example.service.UserService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+
+import javax.servlet.http.HttpSession;
+
+@Controller
+public class WebController {
+    
+    @Autowired
+    private UserService userService;
+
+    /**
+     * 显示登录页面
+     */
+    @GetMapping({"/", "/login"})
+    public String showLoginPage() {
+        System.out.println("showLoginPage");
+        System.out.println("Template path: classpath:/templates/admin-login.html");
+        return "admin-login";
+    }
+
+
+    /**
+     * 处理登录请求
+     */
+    @PostMapping("/login")
+    public String handleLogin(@RequestParam String username,
+                            @RequestParam String password,
+                            @RequestParam String userType,
+                            HttpSession session,
+                            Model model) {
+        User user = userService.login(username, password, userType);
+        if (user != null) {
+            // 登录成功，将用户信息存入 session
+            session.setAttribute("user", user);
+            session.setAttribute("userType", userType);
+            
+            // 根据用户类型重定向到不同的仪表板
+            switch (userType) {
+                case "ADMIN":
+                    return "redirect:/admin/dashboard";
+                case "TEACHER":
+                    return "redirect:/teacher/dashboard";
+                case "STUDENT":
+                    return "redirect:/student/dashboard";
+                default:
+                    return "redirect:/login";
+            }
+        }
+        
+        // 登录失败
+        model.addAttribute("errorMessage", "用户名或密码错误");
+        return "admin-login";
+    }
+
+    /**
+     * 管理员仪表板
+     */
+    @GetMapping("/admin/dashboard")
+    public String adminDashboard(HttpSession session, Model model) {
+        User user = (User) session.getAttribute("user");
+        if (user == null || !"ADMIN".equals(user.getUserType())) {
+            return "redirect:/login";
+        }
+        model.addAttribute("user", user);
+        return "admin-dashboard";
+    }
+
+    /**
+     * 教师仪表板
+     */
+    @GetMapping("/teacher/dashboard")
+    public String teacherDashboard(HttpSession session, Model model) {
+        User user = (User) session.getAttribute("user");
+        if (user == null || !"TEACHER".equals(user.getUserType())) {
+            return "redirect:/login";
+        }
+        model.addAttribute("user", user);
+        return "teacher-dashboard";
+    }
+
+    /**
+     * 学生仪表板
+     */
+    @GetMapping("/student/dashboard")
+    public String studentDashboard(HttpSession session, Model model) {
+        User user = (User) session.getAttribute("user");
+        if (user == null || !"STUDENT".equals(user.getUserType())) {
+            return "redirect:/login";
+        }
+        model.addAttribute("user", user);
+        return "student-dashboard";
+    }
+
+    /**
+     * 注销登录
+     */
+    @GetMapping("/logout")
+    public String logout(HttpSession session) {
+        session.invalidate();
+        return "redirect:/login";
+    }
+
+    /**
+     * 用户管理页面
+     */
+    @GetMapping("/users")
+    public String getUserPage(HttpSession session) {
+        User user = (User) session.getAttribute("user");
+        if (user == null || !"ADMIN".equals(user.getUserType())) {
+            return "redirect:/login";
+        }
+        return "user";
+    }
+
+    /**
+     * 处理学生登录
+     */
+    @PostMapping("/student/login")
+    public String handleStudentLogin(@RequestParam String username,
+                                   @RequestParam String password,
+                                   HttpSession session,
+                                   Model model) {
+        User user = userService.login(username, password, "STUDENT");
+        if (user != null) {
+            session.setAttribute("user", user);
+            return "redirect:/student/dashboard";
+        }
+        model.addAttribute("errorMessage", "用户名或密码错误");
+        return "admin-login";
+    }
+
+    /**
+     * 处理教师登录
+     */
+    @PostMapping("/teacher/login")
+    public String handleTeacherLogin(@RequestParam String username,
+                                   @RequestParam String password,
+                                   HttpSession session,
+                                   Model model) {
+        User user = userService.login(username, password, "TEACHER");
+        if (user != null) {
+            session.setAttribute("user", user);
+            return "redirect:/teacher/dashboard";
+        }
+        model.addAttribute("errorMessage", "用户名或密码错误");
+        return "admin-login";
+    }
+
+    /**
+     * 处理管理员登录
+     */
+    @PostMapping("/admin/login")
+    public String handleAdminLogin(@RequestParam String username,
+                                 @RequestParam String password,
+                                 HttpSession session,
+                                 Model model) {
+        User user = userService.login(username, password, "ADMIN");
+        if (user != null) {
+            session.setAttribute("user", user);
+            return "redirect:/admin/dashboard";
+        }
+        model.addAttribute("errorMessage", "用户名或密码错误");
+        return "admin-login";
+    }
+
+    /**
+     * 选课页面
+     */
+    @GetMapping("/student/select")
+    public String showCourseSelectionPage(HttpSession session, Model model) {
+        User user = (User) session.getAttribute("user");
+        if (user == null || !"STUDENT".equals(user.getUserType())) {
+            return "redirect:/login";
+        }
+        model.addAttribute("user", user);
+        return "student/course-selection";  // 对应 templates/student/course-selection.html
+    }
+
+    /**
+     * 我的课程页面
+     */
+    @GetMapping("/student/courses")
+    public String showMyCourses(HttpSession session, Model model) {
+        User user = (User) session.getAttribute("user");
+        if (user == null || !"STUDENT".equals(user.getUserType())) {
+            return "redirect:/login";
+        }
+        model.addAttribute("user", user);
+        return "student/my-courses";  // 需要创建这个模板
+    }
+
+    /**
+     * 我的课程页面
+     */
+    @GetMapping("/student/recommendations")
+    public String showRecommendations(HttpSession session, Model model) {
+        User user = (User) session.getAttribute("user");
+        if (user == null || !"STUDENT".equals(user.getUserType())) {
+            return "redirect:/login";
+        }
+        model.addAttribute("user", user);
+        return "student/recommendations";  // 需要创建这个模板
+    }
+
+    /**
+     * 课程表页面
+     */
+    @GetMapping("/student/schedule")
+    public String showStudentSchedule(HttpSession session, Model model) {
+        User user = (User) session.getAttribute("user");
+        if (user == null || !"STUDENT".equals(user.getUserType())) {
+            return "redirect:/login";
+        }
+        model.addAttribute("user", user);
+        return "student/schedule";
+    }
+
+    // 教师课程管理页面
+    @GetMapping("/teacher/courses")
+    public String showTeacherCourses(HttpSession session, Model model) {
+        User user = (User) session.getAttribute("user");
+        if (user == null || !"TEACHER".equals(user.getUserType())) {
+            return "redirect:/login";
+        }
+        model.addAttribute("user", user);
+        return "teacher/courses";
+    }
+
+
+    // 教师课程管理页面
+    @GetMapping("/teacher/schedule")
+    public String showTeacherSchedule(HttpSession session, Model model) {
+        User user = (User) session.getAttribute("user");
+        if (user == null || !"TEACHER".equals(user.getUserType())) {
+            return "redirect:/login";
+        }
+        model.addAttribute("user", user);
+        return "teacher/schedule";
+    }
+
+
+    // 教师课程统计
+    @GetMapping("/teacher/course-stats")
+    public String showCourseStats(HttpSession session, Model model) {
+        User user = (User) session.getAttribute("user");
+        if (user == null || !"TEACHER".equals(user.getUserType())) {
+            return "redirect:/login";
+        }
+        model.addAttribute("user", user);
+        return "teacher/course-stats";
+    }
+
+    /**
+     * 用户管理页面
+     */
+    @GetMapping("/admin/users")
+    public String showAdminUsers(HttpSession session, Model model) {
+        User user = (User) session.getAttribute("user");
+        if (user == null || !"ADMIN".equals(user.getUserType())) {
+            return "redirect:/login";
+        }
+        model.addAttribute("user", user);
+        return "admin/users";
+    }
+
+    /**
+     * 课程管理页面
+     */
+    @GetMapping("/admin/courses")
+    public String showAdminCourses(HttpSession session, Model model) {
+        User user = (User) session.getAttribute("user");
+        if (user == null || !"ADMIN".equals(user.getUserType())) {
+            return "redirect:/login";
+        }
+        model.addAttribute("user", user);
+        return "admin/courses";
+    }
+
+
+    /**
+     * 课程管理页面
+     */
+    @GetMapping("/admin/statistics")
+    public String showAdminCoursesStats(HttpSession session, Model model) {
+        User user = (User) session.getAttribute("user");
+        if (user == null || !"ADMIN".equals(user.getUserType())) {
+            return "redirect:/login";
+        }
+        model.addAttribute("user", user);
+        return "admin/statistics";
+    }
+
+
+
+}

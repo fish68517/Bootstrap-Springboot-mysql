@@ -1,0 +1,77 @@
+package com.example.mapper;
+
+import com.example.bean.Schedule;
+import org.apache.ibatis.annotations.*;
+import org.apache.ibatis.mapping.FetchType;
+
+import java.util.List;
+
+@Mapper
+public interface ScheduleMapper {
+    
+    @Insert("INSERT INTO schedules(course_id, day_of_week, start_time, end_time, classroom_id, created_at, updated_at) " +
+            "VALUES(#{courseId}, #{dayOfWeek}, #{startTime}, #{endTime}, #{classroomId}, NOW(), NOW())")
+    @Options(useGeneratedKeys = true, keyProperty = "id")
+    void insert(Schedule schedule);
+
+    @Select("SELECT * FROM schedules WHERE course_id = #{courseId}")
+    @Results({
+            @Result(property = "id", column = "id"),
+            @Result(property = "courseId", column = "course_id"),
+            @Result(property = "dayOfWeek", column = "day_of_week"),
+            @Result(property = "startTime", column = "start_time"),
+            @Result(property = "endTime", column = "end_time"),
+            @Result(property = "classroomId", column = "classroom_id"),
+            @Result(property = "createdAt", column = "created_at"),
+            @Result(property = "updatedAt", column = "updated_at"),
+
+            // 管理 classrooms 表的关系，通过 classroom_id 字段关联到 classrooms 表
+            // 这里的 @One 注解表示，如果查询到 classroom_id 字段，则通过 classroom_id 关联到 classrooms 表，并将查询结果赋值给 classroom 字段
+            // 这里的 @Result 注解表示，将 classrooms 表的 id 字段映射到 classroom 字段
+
+            // 如果报错： java.lang.NullPointerException: Cannot invoke "java.lang.reflect.AccessibleObject.setAccessible(boolean)" because "ao" is null
+            // 请设置   fetchType = FetchType.EAGER
+
+           @Result(property = "classrooms", column = "classroom_id",
+                     one = @One(select = "com.example.mapper.ClassRoomMapper.findById"
+                           , fetchType = FetchType.EAGER)),
+
+
+            @Result(column = "teacher_id", property = "teacher",
+                    one = @One(select = "com.example.mapper.UserMapper.findById",
+                            fetchType = FetchType.EAGER))
+
+    })
+    List<Schedule> findByCourseId(Integer courseId);
+
+    @Delete("DELETE FROM schedules WHERE course_id = #{courseId}")
+    void deleteByCourseId(Integer courseId);
+
+    @Select("SELECT s.* FROM schedules s " +
+            "INNER JOIN selections sel ON s.course_id = sel.course_id " +
+            "WHERE sel.user_id = #{userId}")
+    @Results({
+        @Result(property = "id", column = "id"),
+        @Result(property = "courseId", column = "course_id"),
+        @Result(property = "dayOfWeek", column = "day_of_week"),
+        @Result(property = "startTime", column = "start_time"),
+        @Result(property = "endTime", column = "end_time"),
+        @Result(property = "classroom", column = "classroom"),
+        @Result(property = "createdAt", column = "created_at"),
+        @Result(property = "updatedAt", column = "updated_at"),
+        @Result(property = "course", column = "course_id",
+                one = @One(select = "com.example.mapper.CourseMapper.findById"))
+    })
+    List<Schedule> findByUserId(Integer userId);
+
+    @Select("SELECT EXISTS(" +
+            "SELECT 1 FROM schedules s " +
+            "INNER JOIN selections sel ON s.course_id = sel.course_id " +
+            "WHERE sel.user_id = #{userId} " +
+            "AND s.day_of_week = #{dayOfWeek} " +
+            "AND NOT (s.end_time < #{startTime} OR s.start_time > #{endTime}))")
+    boolean hasTimeConflict(@Param("userId") Integer userId,
+                          @Param("dayOfWeek") String dayOfWeek,
+                          @Param("startTime") Integer startTime,
+                          @Param("endTime") Integer endTime);
+} 
